@@ -90,7 +90,7 @@ class ClothingClassifierTrainer:
         # Callbacks
         callbacks = [
             ModelCheckpoint(
-                f'{self.model_name}_best_weights.h5',
+                f'{self.model_name}_best_weights.weights.h5',
                 monitor='val_loss',
                 save_best_only=True,
                 save_weights_only=True
@@ -115,7 +115,7 @@ class ClothingClassifierTrainer:
     
     def save_model(self, save_dir):
         # Save model weights
-        self.model.save_weights(os.path.join(save_dir, f'{self.model_name}_final_weights.h5'))
+        self.model.save_weights(os.path.join(save_dir, f'{self.model_name}_final_weights.weights.h5'))
         
         # Save label encoders
         for attr, encoder in self.label_encoders.items():
@@ -131,7 +131,7 @@ class ClothingClassifierTrainer:
         model = model_arch
         
         # Load weights
-        model.load_weights(os.path.join(save_dir, f'{model_name}_final_weights.h5'))
+        model.load_weights(os.path.join(save_dir, f'{model_name}_final_weights.weights.h5'))
         
         # Load label encoders
         label_encoders = {}
