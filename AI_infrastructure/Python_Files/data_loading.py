@@ -21,7 +21,7 @@ class FashionDatasetLoader:
                 'beauty accessories', 'water bottle', 'eyes', 'bath and body', 'shoe accessories', 'cufflinks', 'sports equipment', 'hair',
                  'perfumes', 'home furnishing', 'umbrellas', 'fragrance', 'vouchers']
             unwanted_maincategories = ['personal care', 'home', 'free items']
-            unwanted_articleTypes = ['deodorant', 'perfume and body mist', 'laptop bag', 'trolley bag', 'duffel bag', 'travel accessory',
+            unwanted_articleTypes = ['baby dolls', 'deodorant', 'perfume and body mist', 'laptop bag', 'trolley bag', 'duffel bag', 'travel accessory',
                 'mobile pouch', 'messenger bag', 'accessory gift set', 'tablet sleeve', 'footballs', 'hair colour',
                 'cushion covers', 'key chain', 'umbrellas', 'water bottle', 'ipad', 'wallets', 'waist pouch', 'hair accessory', 'cufflinks']
             self.metadata = self.metadata[~self.metadata['subCategory'].isin(unwanted_subcategories)]
