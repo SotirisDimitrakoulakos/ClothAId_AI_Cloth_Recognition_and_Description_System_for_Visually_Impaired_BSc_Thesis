@@ -6,6 +6,28 @@ import os
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
+class MultiOutputDataGenerator(tf.keras.utils.Sequence):
+    def __init__(self, X, y_dict, batch_size=32, shuffle=True):
+        self.X = X
+        self.y_dict = y_dict
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.indices = np.arange(len(X))
+        self.on_epoch_end()
+        
+    def __len__(self):
+        return int(np.ceil(len(self.X) / self.batch_size))
+    
+    def __getitem__(self, index):
+        batch_indices = self.indices[index*self.batch_size:(index+1)*self.batch_size]
+        batch_X = self.X[batch_indices]
+        batch_y = {key: val[batch_indices] for key, val in self.y_dict.items()}
+        return batch_X, batch_y
+    
+    def on_epoch_end(self):
+        if self.shuffle:
+            np.random.shuffle(self.indices)
+
 class ClothingClassifierTrainer:
     def __init__(self, model, model_name):
         self.model = model
@@ -52,8 +74,9 @@ class ClothingClassifierTrainer:
         y_val_array = {attr: y_val_encoded[attr] for attr in y_val_encoded}
 
         # Create data generators
-        train_gen = self.augmentor.flow(X_train, y_train_array, batch_size=batch_size)
-        val_gen = ImageDataGenerator().flow(X_val, y_val_array, batch_size=batch_size)
+        train_gen = MultiOutputDataGenerator(X_train, y_train_array, batch_size=batch_size)
+        val_gen = MultiOutputDataGenerator(X_val, y_val_array, batch_size=batch_size, shuffle=False)
+
         
         # Callbacks
         callbacks = [

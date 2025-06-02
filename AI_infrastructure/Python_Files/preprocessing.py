@@ -6,8 +6,8 @@ class DataPreprocessor:
     def __init__(self, target_size_ef=(300, 300), target_size_iv3=(299, 299)):
         self.target_size_ef = target_size_ef
         self.target_size_iv3 = target_size_iv3
-
     
+
     def preprocess_image_ef(self, image):
         # Resize and normalize
         image = image.resize(self.target_size_ef)
@@ -28,7 +28,7 @@ class DataPreprocessor:
         )
         return balanced_df
 
-    
+
     def prepare_ef_dataset(self, image_ids, metadata, loader):
         images = []
         labels = {col: [] for col in ['masterCategory', 'subCategory', 'articleType', 
