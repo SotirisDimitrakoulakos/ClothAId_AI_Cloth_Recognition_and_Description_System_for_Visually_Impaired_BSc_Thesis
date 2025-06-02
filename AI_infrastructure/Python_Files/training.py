@@ -22,6 +22,7 @@ class MultiOutputDataGenerator(tf.keras.utils.Sequence):
         batch_indices = self.indices[index*self.batch_size:(index+1)*self.batch_size]
         batch_X = self.X[batch_indices]
         batch_y = {key: val[batch_indices] for key, val in self.y_dict.items()}
+        print(f"Batch {index}: X shape {batch_X.shape}, y keys: {list(batch_y.keys())}, y[0] shape: {batch_y[next(iter(batch_y))].shape}")
         return batch_X, batch_y
     
     def on_epoch_end(self):
@@ -65,6 +66,14 @@ class ClothingClassifierTrainer:
        # Encode labels
         y_train_encoded = self.encode_labels(y_train)
         y_val_encoded = self.encode_labels(y_val)
+
+        print("Encoded y_train keys and shapes:")
+        for k, v in y_train_encoded.items():
+            print(f"{k}: {v.shape}")
+
+        print("Encoded y_val keys and shapes:")
+        for k, v in y_val_encoded.items():
+            print(f"{k}: {v.shape}")
 
         # Convert encoded labels dict into a NumPy array for multi-output (if needed)
         # For training generator
