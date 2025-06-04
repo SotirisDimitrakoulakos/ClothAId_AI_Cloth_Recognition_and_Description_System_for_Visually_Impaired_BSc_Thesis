@@ -5,6 +5,8 @@ import json
 import os
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
+from tensorflow.keras.callbacks import ReduceLROnPlateau
+
 
 class MultiOutputDataGenerator(tf.keras.utils.Sequence):
     def __init__(self, X, y_dict, batch_size=32, shuffle=True):
@@ -30,9 +32,10 @@ class MultiOutputDataGenerator(tf.keras.utils.Sequence):
             np.random.shuffle(self.indices)
 
 class ClothingClassifierTrainer:
-    def __init__(self, model, model_name):
+    def __init__(self, model, model_name, save_dir='./'):
         self.model = model
         self.model_name = model_name
+        self.save_dir = save_dir
         self.label_encoders = {}
         self.augmentor = ImageDataGenerator(
             horizontal_flip=True,
@@ -58,10 +61,52 @@ class ClothingClassifierTrainer:
             encoded_labels[attr] = np.array(self.label_encoders[attr].transform(labels))
         return encoded_labels
     
-    def train(self, X_train, y_train, X_val, y_val, batch_size=16, epochs=50, X_test=None, y_test=None):
+    def save_training_state(self, last_epoch):
+        state = {'last_epoch': last_epoch}
+        with open(os.path.join(self.save_dir, f'{self.model_name}_training_state.json'), 'w') as f:
+            json.dump(state, f)
 
-        # Fit label encoders on all available labels before encoding
-        self.fit_label_encoders(y_train, y_val, y_test)
+    def load_training_state(self):
+        state_path = os.path.join(self.save_dir, f'{self.model_name}_training_state.json')
+        if os.path.exists(state_path):
+            with open(state_path, 'r') as f:
+                state = json.load(f)
+            return state.get('last_epoch', -1)
+        else:
+            return -1
+    
+    def train(self, X_train, y_train, X_val, y_val, batch_size=16, epochs=50, X_test=None, y_test=None, resume_training=False):
+
+        if resume_training:
+            print("Resuming training...")
+            # Load weights if they exist
+            weights_path = os.path.join(self.save_dir, f'{self.model_name}_final_weights.weights.h5')
+            if os.path.exists(weights_path):
+                self.model.load_weights(weights_path)
+                print(f"Loaded weights from {weights_path}")
+            else:
+                print("No saved weights found, starting fresh.")
+            
+            # Load label encoders
+            for attr in y_train.keys():
+                classes_path = os.path.join(self.save_dir, f'{attr}_classes.npy')
+                if os.path.exists(classes_path):
+                    classes = np.load(classes_path, allow_pickle=True)
+                    encoder = LabelEncoder()
+                    encoder.classes_ = classes
+                    self.label_encoders[attr] = encoder
+                else:
+                    raise FileNotFoundError(f"Label encoder classes for {attr} not found at {classes_path}")
+
+            last_epoch = self.load_training_state()
+            initial_epoch = last_epoch + 1
+            print(f"Resuming from epoch {initial_epoch}")
+
+        else:
+            print("Starting fresh training...")
+            # Fit label encoders anew
+            self.fit_label_encoders(y_train)
+            initial_epoch = 0
 
        # Encode labels
         y_train_encoded = self.encode_labels(y_train)
@@ -99,6 +144,13 @@ class ClothingClassifierTrainer:
                 monitor='val_loss',
                 patience=5,
                 restore_best_weights=True
+            ),
+            ReduceLROnPlateau(
+                monitor='val_loss',
+                factor=0.5,
+                patience=3,
+                verbose=1,
+                min_lr=1e-6
             )
         ]
         
@@ -108,12 +160,18 @@ class ClothingClassifierTrainer:
             validation_data=val_gen,
             batch_size=batch_size,
             epochs=epochs,
-            callbacks=callbacks
+            callbacks=callbacks,
+            initial_epoch=initial_epoch
         )
+
+        # Save training state (last completed epoch)
+        self.save_training_state(initial_epoch + len(history.history['loss']) - 1)
         
         return history
     
-    def save_model(self, save_dir):
+    def save_model(self, save_dir=None):
+        if save_dir is None:
+            save_dir = self.save_dir
         # Save model weights
         self.model.save_weights(os.path.join(save_dir, f'{self.model_name}_final_weights.weights.h5'))
         
