@@ -153,15 +153,22 @@ class ClothingClassifierTrainer:
                 min_lr=1e-6
             )
         ]
+
+        x0, y0 = train_gen[0]
+        print("Sanity Check Shapes:")
+        print("X:", x0.shape, x0.dtype)
+        for k, v in y0.items():
+            print(f"{k}: {v.shape}, {v.dtype}")
+
         
         # Train model
         history = self.model.fit(
             train_gen,
             validation_data=val_gen,
-            batch_size=batch_size,
             epochs=epochs,
             callbacks=callbacks,
-            initial_epoch=initial_epoch
+            initial_epoch=initial_epoch,
+            verbose=1
         )
 
         print("Training History Keys:")

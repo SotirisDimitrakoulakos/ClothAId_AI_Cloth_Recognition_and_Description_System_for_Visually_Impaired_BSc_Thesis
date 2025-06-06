@@ -39,6 +39,9 @@ class EfficientNetClothingClassifier:
         optimizer = SGD(learning_rate=0.001, momentum=0.9)
         losses = {attr: 'sparse_categorical_crossentropy' for attr in self.num_classes_dict.keys()}
         metrics = {attr: 'accuracy' for attr in self.num_classes_dict.keys()}
+
+        print("Model outputs:", model.output_names)
+        print("Loss keys:", list(losses.keys()))
         
         model.compile(optimizer=optimizer, loss=losses, metrics=metrics)
         
