@@ -1,59 +1,69 @@
 from flask import Flask, request, jsonify
-from flask_ngrok import run_with_ngrok
-import numpy as np
-from PIL import Image
 import io
-import os
+from PIL import Image
+
+# Import TensorFlow & your custom model classes
+import tensorflow as tf
+import pickle
+import pandas as pd
+
 from prediction import ClothingAttributePredictor
 from mmfashion_integration import MMFashionPredictor
 
-app = Flask(__name__)
-run_with_ngrok(app)  # This will expose your Colab server to the internet
+# Import your custom model builders and loaders here
+from efficientnet_classifier import EfficientNetClothingClassifier
+from iv3_classifier import IV3ClothingClassifier
+from training_utils import ClothingClassifierTrainer
 
-# Initialize models
-effnet_model, effnet_encoders = None, None  # Load these from your saved models
-googlenet_model, googlenet_encoders = None, None  # Load these from your saved models
+app = Flask(__name__)
+
+balanced_metadata = pd.read_pickle('/content/drive/MyDrive/AI_Infrastructure/Data/pickle_pre_data/filtered_balanced_metadata_efnet.pkl')
+
+# Define your classes count dict here or import it
+num_classes_dict = {
+    attr: len(balanced_metadata[attr].unique())
+    for attr in ['masterCategory', 'subCategory', 'articleType',
+                'baseColour', 'gender', 'season', 'usage']
+}
+
+def load_models():
+    effnet = EfficientNetClothingClassifier(num_classes_dict)
+    effnet_model = effnet.build_model()
+    effnet_model, effnet_encoders = ClothingClassifierTrainer.load_model(
+        'efficientnet', effnet_model, 'saved_models/EffNet_Fashion')
+
+    iv3net = IV3ClothingClassifier(num_classes_dict)
+    iv3net_model = iv3net.build_model()
+    iv3net_model, iv3net_encoders = ClothingClassifierTrainer.load_model(
+        'inceptionv3', iv3net_model, 'saved_models/IV3Net_Fashion')
+
+    return effnet_model, effnet_encoders, iv3net_model, iv3net_encoders
+
+effnet_model, effnet_encoders, iv3net_model, iv3net_encoders = load_models()
 mmfashion_predictor = MMFashionPredictor()
 
 @app.route('/predict', methods=['POST'])
 def predict():
     if 'image' not in request.files:
         return jsonify({'error': 'No image provided'}), 400
-    
-    # Get image file
+
     image_file = request.files['image']
     image_bytes = image_file.read()
-    image = Image.open(io.BytesIO(image_bytes))
-    
-    # Save temporarily (or process directly)
-    temp_path = 'temp_image.jpg'
-    image.save(temp_path)
-    
-    # Get model type if specified (default to EfficientNet)
+    image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+
     model_type = request.form.get('model_type', 'efficientnet')
-    
-    # Predict with selected model
     if model_type == 'efficientnet':
         predictor = ClothingAttributePredictor(effnet_model, effnet_encoders)
     else:
-        predictor = ClothingAttributePredictor(googlenet_model, googlenet_encoders)
-    
-    # Get basic attributes
-    attributes = predictor.predict_attributes(temp_path)
-    
-    # Get additional attributes from MMFashion based on articleType
+        predictor = ClothingAttributePredictor(iv3net_model, iv3net_encoders)
+
+    attributes = predictor.predict_attributes_from_pil(image)
+
     if 'articleType' in attributes:
-        additional_attrs = mmfashion_predictor.predict(temp_path, attributes['articleType'])
+        additional_attrs = mmfashion_predictor.predict(image, attributes['articleType'])
         attributes.update(additional_attrs)
-    
-    # Clean up
-    os.remove(temp_path)
-    
+
     return jsonify(attributes)
 
 if __name__ == '__main__':
-    # Load models here
-    # effnet_model, effnet_encoders = load_models(...)
-    # googlenet_model, googlenet_encoders = load_models(...)
-    
-    app.run()
+    app.run(host='0.0.0.0', port=5000)

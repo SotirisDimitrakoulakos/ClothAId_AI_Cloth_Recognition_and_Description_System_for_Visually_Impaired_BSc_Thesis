@@ -165,7 +165,14 @@ class ClothingClassifierTrainer:
         )
 
         # Save training state (last completed epoch)
-        self.save_training_state(initial_epoch + len(history.history['loss']) - 1)
+        key = 'loss'
+        if key not in history.history:
+            # Try any of the output losses as fallback
+            key = next((k for k in history.history if k.endswith('_loss')), None)
+            if key is None:
+                raise ValueError("No loss keys found in training history.")
+
+        self.save_training_state(initial_epoch + len(history.history[key]) - 1)
         
         return history
     
