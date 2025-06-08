@@ -102,11 +102,20 @@ class ClothingClassifierTrainer:
             initial_epoch = last_epoch + 1
             print(f"Resuming from epoch {initial_epoch}")
 
+                # Load previous training history
+            history_path = os.path.join(self.save_dir, f"{self.model_name}_training_history.json")
+            if os.path.exists(history_path):
+                with open(history_path, 'r') as f:
+                    previous_history = json.load(f)
+            else:
+                previous_history = {}
+
         else:
             print("Starting fresh training...")
             # Fit label encoders anew
             self.fit_label_encoders(y_train)
             initial_epoch = 0
+            previous_history = {}
 
        # Encode labels
         y_train_encoded = self.encode_labels(y_train)
@@ -135,7 +144,7 @@ class ClothingClassifierTrainer:
         # Callbacks
         callbacks = [
             ModelCheckpoint(
-                f'{self.model_name}_best_weights.weights.h5',
+                os.path.join(self.save_dir, f'{self.model_name}_best_weights.weights.h5'),
                 monitor='val_loss',
                 save_best_only=True,
                 save_weights_only=True
@@ -174,6 +183,16 @@ class ClothingClassifierTrainer:
         print("Training History Keys:")
         print(history.history.keys())
 
+        # Merge current history with previous history
+        for key in previous_history:
+            if key in history.history:
+                history.history[key] = previous_history[key] + history.history[key]
+
+        # Save updated history to disk
+        with open(os.path.join(self.save_dir, f"{self.model_name}_training_history.json"), 'w') as f:
+            json.dump(history.history, f)
+
+
         # Find a valid key to estimate how many epochs were completed
         key = next((k for k in history.history if k.endswith('_loss')), None)
 
@@ -194,6 +213,13 @@ class ClothingClassifierTrainer:
             save_dir = self.save_dir
         # Save model weights
         self.model.save_weights(os.path.join(save_dir, f'{self.model_name}_final_weights.weights.h5'))
+
+        # Ensure best weights have already been saved by ModelCheckpoint during training
+        best_weights_path = os.path.join(save_dir, f'{self.model_name}_best_weights.weights.h5')
+        if not os.path.exists(best_weights_path):
+            print("Best weights not found. Only final weights were saved.")
+        else:
+            print("Best weights already saved during training.")
         
         # Save label encoders
         for attr, encoder in self.label_encoders.items():
@@ -204,13 +230,21 @@ class ClothingClassifierTrainer:
             f.write(self.model.to_json())
     
     @staticmethod
-    def load_model(model_name, model_arch, save_dir):
+    def load_model(model_name, model_arch, save_dir, best_weights=False):
         # Load model architecture
         model = model_arch
         
         # Load weights
-        model.load_weights(os.path.join(save_dir, f'{model_name}_final_weights.weights.h5'))
-        
+        # Decide which weights to load
+        weights_filename = f'{model_name}_best_weights.weights.h5' if best_weights else f'{model_name}_final_weights.weights.h5'
+        weights_path = os.path.join(save_dir, weights_filename)
+
+        if os.path.exists(weights_path):
+            model.load_weights(weights_path)
+            print(f"✅ Loaded {'best' if best_weights else 'final'} weights from {weights_path}")
+        else:
+            raise FileNotFoundError(f"❌ Weights file not found: {weights_path}")
+
         # Load label encoders
         label_encoders = {}
         for attr in ['masterCategory', 'subCategory', 'articleType', 

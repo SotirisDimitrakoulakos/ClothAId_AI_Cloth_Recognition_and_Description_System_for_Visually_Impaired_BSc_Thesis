@@ -6,6 +6,23 @@ import json
 from sklearn.model_selection import train_test_split
 
 class FashionDatasetLoader:
+    generalized_color_map = {
+        'blue': ['blue', 'navy blue', 'teal'],
+        'black': ['black'],
+        'grey': ['grey', 'charcoal', 'steel', 'grey melange', 'silver', 'metallic', 'taupe'],
+        'white': ['white', 'off white', 'beige', 'cream'],
+        'brown': ['brown', 'bronze', 'copper', 'rust', 'coffee brown', 'skin', 'nude', 'mushroom brown'],
+        'yellow': ['yellow', 'mustard'],
+        'red': ['red', 'maroon', 'burgundy'],
+        'orange': ['orange', 'peach'],
+        'green': ['green', 'olive', 'sea green', 'lime green', 'fluorescent green'],
+        'purple': ['purple', 'lavender', 'mauve'],
+        'pink': ['pink', 'magenta', 'rose'],
+        'multi': ['multi'],
+        'nan': ['nan'],
+        'turquoise': ['turquoise blue'],
+    }
+
     def __init__(self, dataset_path, metadata_file):
         self.dataset_path = dataset_path
         if os.path.exists(metadata_file) and os.path.getsize(metadata_file) > 0:
@@ -27,8 +44,36 @@ class FashionDatasetLoader:
             self.metadata = self.metadata[~self.metadata['subCategory'].isin(unwanted_subcategories)]
             self.metadata = self.metadata[~self.metadata['masterCategory'].isin(unwanted_maincategories)]
             self.metadata = self.metadata[~self.metadata['articleType'].isin(unwanted_articleTypes)]
+
+            # Apply generalizations here:
+            self.metadata['season'] = self.metadata['season'].apply(self._generalize_season)
+            self.metadata['baseColour'] = self.metadata['baseColour'].apply(self._generalize_base_color)
         else:
             raise FileNotFoundError(f"Metadata file {metadata_file} not found or empty")
+        
+    def _generalize_season(self, season_value):
+        # Group summer and spring as "summer/spring"
+        if pd.isna(season_value) or season_value == 'nan':
+            return 'nan'
+        season_value = season_value.lower().strip()
+        if season_value in ['summer', 'spring']:
+            return 'summer/spring'
+        # keep fall and winter as is
+        if season_value in ['fall', 'winter']:
+            return season_value
+        # fallback - keep original
+        return season_value
+
+    def _generalize_base_color(self, base_color_value):
+        if pd.isna(base_color_value) or base_color_value == 'nan':
+            return 'nan'
+        base_color_value = base_color_value.lower().strip()
+        # find the generalized key for this base color
+        for gen_color, variants in self.generalized_color_map.items():
+            if base_color_value in variants:
+                return gen_color
+        # fallback - if no match, return original
+        return base_color_value
         
     def load_image(self, image_id):
         image_path = os.path.join(self.dataset_path, f"{image_id}.jpg")
