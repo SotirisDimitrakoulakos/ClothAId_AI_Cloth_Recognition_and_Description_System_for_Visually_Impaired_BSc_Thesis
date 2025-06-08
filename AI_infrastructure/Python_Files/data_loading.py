@@ -13,7 +13,7 @@ class FashionDatasetLoader:
         'white': ['white', 'off white', 'beige', 'cream'],
         'beige': ['beige', 'khaki', 'tan', 'off white'],
         'brown': ['brown', 'bronze', 'copper', 'rust', 'coffee brown', 'skin', 'nude', 'mushroom brown'],
-        'yellow': ['yellow', 'gold' 'mustard'],
+        'yellow': ['yellow', 'gold', 'mustard'],
         'red': ['red', 'maroon', 'burgundy'],
         'orange': ['orange', 'peach'],
         'green': ['green', 'olive', 'sea green', 'lime green', 'fluorescent green'],
