@@ -32,10 +32,11 @@ class MultiOutputDataGenerator(tf.keras.utils.Sequence):
             np.random.shuffle(self.indices)
 
 class ClothingClassifierTrainer:
-    def __init__(self, model, model_name, save_dir='./'):
+    def __init__(self, model, model_name, save_dir='./', save_dir_resume='./'):
         self.model = model
         self.model_name = model_name
         self.save_dir = save_dir
+        self.save_dir_resume = save_dir_resume
         self.label_encoders = {}
         self.augmentor = ImageDataGenerator(
             horizontal_flip=True,
@@ -63,11 +64,11 @@ class ClothingClassifierTrainer:
     
     def save_training_state(self, last_epoch):
         state = {'last_epoch': last_epoch}
-        with open(os.path.join(self.save_dir, f'{self.model_name}_training_state.json'), 'w') as f:
+        with open(os.path.join(self.save_dir_resume, f'{self.model_name}_training_state.json'), 'w') as f:
             json.dump(state, f)
 
     def load_training_state(self):
-        state_path = os.path.join(self.save_dir, f'{self.model_name}_training_state.json')
+        state_path = os.path.join(self.save_dir_resume, f'{self.model_name}_training_state.json')
         if os.path.exists(state_path):
             with open(state_path, 'r') as f:
                 state = json.load(f)
@@ -80,7 +81,7 @@ class ClothingClassifierTrainer:
         if resume_training:
             print("Resuming training...")
             # Load weights if they exist
-            weights_path = os.path.join(self.save_dir, f'{self.model_name}_final_weights.weights.h5')
+            weights_path = os.path.join(self.save_dir_resume, f'{self.model_name}_final_weights.weights.h5')
             if os.path.exists(weights_path):
                 self.model.load_weights(weights_path)
                 print(f"Loaded weights from {weights_path}")
@@ -89,7 +90,7 @@ class ClothingClassifierTrainer:
             
             # Load label encoders
             for attr in y_train.keys():
-                classes_path = os.path.join(self.save_dir, f'{attr}_classes.npy')
+                classes_path = os.path.join(self.save_dir_resume, f'{attr}_classes.npy')
                 if os.path.exists(classes_path):
                     classes = np.load(classes_path, allow_pickle=True)
                     encoder = LabelEncoder()
@@ -103,7 +104,7 @@ class ClothingClassifierTrainer:
             print(f"Resuming from epoch {initial_epoch}")
 
                 # Load previous training history
-            history_path = os.path.join(self.save_dir, f"{self.model_name}_training_history.json")
+            history_path = os.path.join(self.save_dir_resume, f"{self.model_name}_training_history.json")
             if os.path.exists(history_path):
                 with open(history_path, 'r') as f:
                     previous_history = json.load(f)
@@ -189,7 +190,7 @@ class ClothingClassifierTrainer:
                 history.history[key] = previous_history[key] + history.history[key]
 
         # Save updated history to disk
-        with open(os.path.join(self.save_dir, f"{self.model_name}_training_history.json"), 'w') as f:
+        with open(os.path.join(self.save_dir_resume, f"{self.model_name}_training_history.json"), 'w') as f:
             json.dump(history.history, f)
 
 
@@ -205,6 +206,8 @@ class ClothingClassifierTrainer:
             raise ValueError(f"No loss keys found in training history. Got keys: {list(history.history.keys())}")
 
         self.save_training_state(initial_epoch + len(history.history[key]) - 1)
+
+        self.save_model(self.save_dir_resume)
         
         return history
     
