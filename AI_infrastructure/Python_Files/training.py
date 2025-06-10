@@ -7,6 +7,41 @@ import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 
+import tensorflow as tf
+import os
+import json
+import numpy as np
+
+class SaveTrainingStateCallback(tf.keras.callbacks.Callback):
+    def __init__(self, trainer, save_dir_resume, model_name):
+        super().__init__()
+        self.trainer = trainer
+        self.save_dir_resume = save_dir_resume
+        self.model_name = model_name
+        self.history = {}
+
+    def on_epoch_end(self, epoch, logs=None):
+        # Update history
+        for k, v in (logs or {}).items():
+            self.history.setdefault(k, []).append(float(v))
+
+        # Save history
+        history_path = os.path.join(self.save_dir_resume, f"{self.model_name}_training_history.json")
+        with open(history_path, 'w') as f:
+            json.dump(self.history, f)
+
+        # Save training state (last epoch)
+        state = {'last_epoch': epoch}
+        with open(os.path.join(self.save_dir_resume, f'{self.model_name}_training_state.json'), 'w') as f:
+            json.dump(state, f)
+
+        # Save label encoders
+        for attr, encoder in self.trainer.label_encoders.items():
+            np.save(os.path.join(self.save_dir_resume, f'{attr}_classes.npy'), encoder.classes_)
+
+        # Save model weights
+        self.trainer.model.save_weights(os.path.join(self.save_dir_resume, f'{self.model_name}_final_weights.weights.h5'))
+
 
 class MultiOutputDataGenerator(tf.keras.utils.Sequence):
     def __init__(self, X, y_dict, batch_size=32, shuffle=True):
@@ -64,7 +99,7 @@ class ClothingClassifierTrainer:
     
     def save_training_state(self, last_epoch):
         state = {'last_epoch': last_epoch}
-        with open(os.path.join(self.save_dir_resume, f'{self.model_name}_training_state.json'), 'w') as f:
+        with open(os.path.join(self.save_dir, f'{self.model_name}_training_state.json'), 'w') as f:
             json.dump(state, f)
 
     def load_training_state(self):
@@ -161,7 +196,8 @@ class ClothingClassifierTrainer:
                 patience=3,
                 verbose=1,
                 min_lr=1e-6
-            )
+            ),
+            SaveTrainingStateCallback(self, self.save_dir_resume, self.model_name)
         ]
 
         x0, y0 = train_gen[0]
@@ -190,7 +226,7 @@ class ClothingClassifierTrainer:
                 history.history[key] = previous_history[key] + history.history[key]
 
         # Save updated history to disk
-        with open(os.path.join(self.save_dir_resume, f"{self.model_name}_training_history.json"), 'w') as f:
+        with open(os.path.join(self.save_dir, f"{self.model_name}_training_history.json"), 'w') as f:
             json.dump(history.history, f)
 
 
@@ -206,8 +242,6 @@ class ClothingClassifierTrainer:
             raise ValueError(f"No loss keys found in training history. Got keys: {list(history.history.keys())}")
 
         self.save_training_state(initial_epoch + len(history.history[key]) - 1)
-
-        self.save_model(self.save_dir_resume)
         
         return history
     
