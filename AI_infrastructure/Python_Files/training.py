@@ -111,7 +111,7 @@ class ClothingClassifierTrainer:
         else:
             return -1
     
-    def train(self, X_train, y_train, X_val, y_val, batch_size=16, epochs=50, X_test=None, y_test=None, resume_training=False):
+    def train(self, X_train, y_train, X_val, y_val, batch_size=16, epochs=50, X_test=None, y_test=None, resume_training=False, fit_label_encoders=True):
 
         if resume_training:
             print("Resuming training...")
@@ -149,7 +149,8 @@ class ClothingClassifierTrainer:
         else:
             print("Starting fresh training...")
             # Fit label encoders anew
-            self.fit_label_encoders(y_train)
+            if fit_label_encoders:
+                self.fit_label_encoders(y_train)
             initial_epoch = 0
             previous_history = {}
 
