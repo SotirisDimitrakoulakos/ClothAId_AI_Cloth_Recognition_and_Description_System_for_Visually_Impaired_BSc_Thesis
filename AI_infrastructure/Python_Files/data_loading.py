@@ -24,7 +24,7 @@ class FashionDatasetLoader:
         'turquoise': ['turquoise blue'],
     }
 
-    def __init__(self, dataset_path, metadata_file):
+    def __init__(self, dataset_path, metadata_file, gen=True):
         self.dataset_path = dataset_path
         if os.path.exists(metadata_file) and os.path.getsize(metadata_file) > 0:
             try:
@@ -46,9 +46,10 @@ class FashionDatasetLoader:
             self.metadata = self.metadata[~self.metadata['masterCategory'].isin(unwanted_maincategories)]
             self.metadata = self.metadata[~self.metadata['articleType'].isin(unwanted_articleTypes)]
 
-            # Apply generalizations here:
-            self.metadata['season'] = self.metadata['season'].apply(self._generalize_season)
-            self.metadata['baseColour'] = self.metadata['baseColour'].apply(self._generalize_base_color)
+            if gen:
+                # Apply generalizations here:
+                self.metadata['season'] = self.metadata['season'].apply(self._generalize_season)
+                self.metadata['baseColour'] = self.metadata['baseColour'].apply(self._generalize_base_color)
         else:
             raise FileNotFoundError(f"Metadata file {metadata_file} not found or empty")
         
