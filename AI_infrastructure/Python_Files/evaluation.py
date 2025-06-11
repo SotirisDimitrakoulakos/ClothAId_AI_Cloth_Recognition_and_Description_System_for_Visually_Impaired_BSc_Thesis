@@ -36,12 +36,20 @@ class ModelEvaluator:
             true_labels = y_test_encoded[attr]
             pred_labels = np.argmax(y_pred[attr], axis=1)
 
+            # ⚠️ Log warning if not all classes are present
+            unique_in_test = np.unique(true_labels)
+            total_classes = len(self.label_encoders[attr].classes_)
+            if len(unique_in_test) < total_classes:
+                print(f"⚠️  Attribute '{attr}': Only {len(unique_in_test)}/{total_classes} classes present in test set.")
+
             # Classification report
             report = classification_report(
                 true_labels,
                 pred_labels,
+                labels=range(total_classes),  # Ensures full label set is used
                 target_names=self.label_encoders[attr].classes_,
-                output_dict=True
+                output_dict=True,
+                zero_division=0  # Prevents divide-by-zero warnings
             )
 
             # Confusion matrix
