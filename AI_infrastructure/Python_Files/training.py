@@ -30,11 +30,21 @@ class SaveTrainingStateCallback(tf.keras.callbacks.Callback):
         with open(history_path, 'w') as f:
             json.dump(self.history, f)
 
-        # Save training state (last epoch)
-        state = {'last_epoch': epoch}
-        with open(os.path.join(self.save_dir_resume, f'{self.model_name}_training_state.json'), 'w') as f:
-            json.dump(state, f)
+        # Load existing state if available
+        state_path = os.path.join(self.save_dir_resume, f'{self.model_name}_training_state.json')
+        if os.path.exists(state_path):
+            with open(state_path, 'r') as f:
+                existing_state = json.load(f)
+            previous_epoch = existing_state.get('last_epoch', -1)
+        else:
+            previous_epoch = -1
 
+        # Update only if current epoch is newer
+        if epoch > previous_epoch:
+            state = {'last_epoch': epoch}
+            with open(state_path, 'w') as f:
+                json.dump(state, f)
+                
         # Save label encoders
         for attr, encoder in self.trainer.label_encoders.items():
             np.save(os.path.join(self.save_dir_resume, f'{attr}_classes.npy'), encoder.classes_)
