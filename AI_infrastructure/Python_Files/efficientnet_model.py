@@ -26,12 +26,12 @@ class EfficientNetClothingClassifier:
         x = ef_preprocess(inputs)
         x = self.base_model(x, training=False)
         x = GlobalAveragePooling2D()(x)
-        x = Dropout(0.2)(x)
+        x = Dropout(0.4)(x)
         
         # Create output branches for each attribute
         outputs = {}
         for attr, num_classes in self.num_classes_dict.items():
-            outputs[attr] = Dense(num_classes, activation='softmax', name=attr)(x)
+            outputs[attr] = Dense(num_classes, activation='softmax', name=attr, kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
         
         # Create model
         model = Model(inputs=inputs, outputs=outputs)
