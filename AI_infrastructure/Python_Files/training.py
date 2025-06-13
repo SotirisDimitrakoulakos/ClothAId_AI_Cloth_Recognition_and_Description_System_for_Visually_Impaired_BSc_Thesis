@@ -294,7 +294,7 @@ class ClothingClassifierTrainer:
         weights_path = os.path.join(save_dir, weights_filename)
 
         if os.path.exists(weights_path):
-            model.load_weights(weights_path)
+            model.load_weights(weights_path, by_name=True, skip_mismatch=True)
             print(f"✅ Loaded {'best' if best_weights else 'final'} weights from {weights_path}")
         else:
             raise FileNotFoundError(f"❌ Weights file not found: {weights_path}")
