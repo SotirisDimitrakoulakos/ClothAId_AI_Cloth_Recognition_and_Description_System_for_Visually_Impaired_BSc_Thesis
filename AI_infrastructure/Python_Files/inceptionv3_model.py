@@ -3,7 +3,7 @@ from tensorflow.keras.applications.inception_v3 import InceptionV3, preprocess_i
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Dropout
 from tensorflow.keras.optimizers import SGD
-from focal_loss import SparseFocalLoss
+
 
 class IV3ClothingClassifier:
     def __init__(self, num_classes_dict, input_shape=(299, 299, 3)):
@@ -35,27 +35,10 @@ class IV3ClothingClassifier:
         
         # Compile
         optimizer = SGD(learning_rate=0.001, momentum=0.9)
-        losses = {
-            'season': SparseFocalLoss(gamma=2.0),
-            'baseColour': SparseFocalLoss(gamma=2.0),
-            'articleType': 'sparse_categorical_crossentropy',
-            'subCategory': 'sparse_categorical_crossentropy',
-            'masterCategory': 'sparse_categorical_crossentropy',
-            'gender': 'sparse_categorical_crossentropy',
-            'usage': 'sparse_categorical_crossentropy',
-        }
-        loss_weights = {
-            'articleType': 1.2,
-            'subCategory': 1.0,
-            'baseColour': 1.5,
-            'season': 1.5,
-            'usage': 1.0,
-            'masterCategory': 0.8,
-            'gender': 0.8
-        }
+        losses = {attr: 'sparse_categorical_crossentropy' for attr in self.num_classes_dict}
         metrics = {attr: 'accuracy' for attr in self.num_classes_dict.keys()}
         
-        model.compile(optimizer=optimizer, loss=losses, loss_weights=loss_weights, metrics=metrics)
+        model.compile(optimizer=optimizer, loss=losses, metrics=metrics)
         return model
     
     def fine_tune(self, model, unfreeze_from_layer_name='mixed7'):
@@ -81,23 +64,15 @@ class IV3ClothingClassifier:
             
         # Lower learning rate for fine-tuning
         optimizer = SGD(learning_rate=0.0001, momentum=0.9)
-        losses = {
-            'season': SparseFocalLoss(gamma=2.0),
-            'baseColour': SparseFocalLoss(gamma=2.0),
-            'articleType': 'sparse_categorical_crossentropy',
-            'subCategory': 'sparse_categorical_crossentropy',
-            'masterCategory': 'sparse_categorical_crossentropy',
-            'gender': 'sparse_categorical_crossentropy',
-            'usage': 'sparse_categorical_crossentropy',
-        }
+        losses = {attr: 'sparse_categorical_crossentropy' for attr in self.num_classes_dict}
         loss_weights = {
             'articleType': 1.2,
-            'subCategory': 1.0,
+            'subCategory': 0.8,
             'baseColour': 1.5,
             'season': 1.5,
             'usage': 1.0,
-            'masterCategory': 0.8,
-            'gender': 0.8
+            'masterCategory': 0.7,
+            'gender': 1.0
         }
         metrics = {attr: 'accuracy' for attr in self.num_classes_dict.keys()}
         
