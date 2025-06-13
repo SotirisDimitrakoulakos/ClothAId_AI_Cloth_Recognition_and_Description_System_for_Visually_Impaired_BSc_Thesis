@@ -48,6 +48,7 @@ class SaveTrainingStateCallback(tf.keras.callbacks.Callback):
         # Save label encoders
         for attr, encoder in self.trainer.label_encoders.items():
             np.save(os.path.join(self.save_dir_resume, f'{attr}_classes.npy'), encoder.classes_)
+        print("✅ Saving label encoders:", list(self.trainer.label_encoders.keys()))
 
         # Save model weights
         self.trainer.model.save_weights(os.path.join(self.save_dir_resume, f'{self.model_name}_final_weights.weights.h5'))
@@ -127,7 +128,7 @@ class ClothingClassifierTrainer:
         else:
             return -1
     
-    def train(self, X_train, y_train, X_val, y_val, batch_size=16, epochs=50, X_test=None, y_test=None, resume_training=False, fit_label_encoders=True):
+    def train(self, X_train, y_train, X_val, y_val, batch_size=16, epochs=50, X_test=None, y_test=None, resume_training=False, fit_label_encoders=True, all_labels=None):
 
         if resume_training:
             print("Resuming training...")
@@ -154,7 +155,7 @@ class ClothingClassifierTrainer:
             initial_epoch = last_epoch + 1
             print(f"Resuming from epoch {initial_epoch}")
 
-                # Load previous training history
+            # Load previous training history
             history_path = os.path.join(self.save_dir_resume, f"{self.model_name}_training_history.json")
             if os.path.exists(history_path):
                 with open(history_path, 'r') as f:
@@ -166,7 +167,10 @@ class ClothingClassifierTrainer:
             print("Starting fresh training...")
             # Fit label encoders anew
             if fit_label_encoders:
-                self.fit_label_encoders(y_train)
+                if all_labels:
+                    self.fit_label_encoders(all_labels)
+                else:
+                    self.fit_label_encoders(y_train)
             initial_epoch = 0
             previous_history = {}
 
