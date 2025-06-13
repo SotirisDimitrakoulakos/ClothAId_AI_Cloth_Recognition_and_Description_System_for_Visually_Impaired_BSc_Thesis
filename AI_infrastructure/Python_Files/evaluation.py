@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.metrics import classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
+import time
 
 class ModelEvaluator:
     def __init__(self, model, label_encoders):
@@ -14,8 +15,11 @@ class ModelEvaluator:
         for attr, labels in y_test.items():
             y_test_encoded[attr] = self.label_encoders[attr].transform(labels)
         
-        # Predict
-        y_pred_raw = self.model.predict(X_test)
+        # Measure inference time
+        start_time = time.time()
+        y_pred_raw = self.model.predict(X_test, batch_size=32)
+        inference_duration = time.time() - start_time
+        avg_inference_time = inference_duration / len(X_test)
 
         # Handle dict or list prediction outputs
         if isinstance(y_pred_raw, dict):
@@ -33,10 +37,11 @@ class ModelEvaluator:
         for attr in y_test.keys():
             if attr not in y_pred:
                 raise ValueError(f"Missing predictions for attribute: {attr}")
+            
             true_labels = y_test_encoded[attr]
-            pred_labels = np.argmax(y_pred[attr], axis=1)
+            pred_probs = y_pred[attr]
+            pred_labels = np.argmax(pred_probs, axis=1)
 
-            # ⚠️ Log warning if not all classes are present
             unique_in_test = np.unique(true_labels)
             total_classes = len(self.label_encoders[attr].classes_)
             if len(unique_in_test) < total_classes:
@@ -55,9 +60,15 @@ class ModelEvaluator:
             # Confusion matrix
             cm = confusion_matrix(true_labels, pred_labels)
 
+            # Top-k accuracy
+            top3_acc = top_k_accuracy_score(true_labels, pred_probs, k=3, labels=range(total_classes))
+            top5_acc = top_k_accuracy_score(true_labels, pred_probs, k=5, labels=range(total_classes))
+
             results[attr] = {
                 'report': report,
-                'confusion_matrix': cm
+                'confusion_matrix': cm,
+                'top3_accuracy': top3_acc,
+                'top5_accuracy': top5_acc
             }
 
         # Add training history if available
@@ -72,6 +83,7 @@ class ModelEvaluator:
             results['training_time'] = training_time
         if num_epochs:
             results['num_epochs'] = num_epochs
+        results['avg_inference_time'] = avg_inference_time
 
         return results
 
@@ -81,6 +93,9 @@ class ModelEvaluator:
             print("\n=== Training Summary ===")
             for k, v in results['training'].items():
                 print(f"{k.replace('_', ' ').title()}: {v:.4f}" if isinstance(v, float) else f"{k.replace('_', ' ').title()}: {v}")
+
+        if 'avg_inference_time' in results:
+            print(f"\nAverage inference time per sample: {results['avg_inference_time']:.6f} seconds")
 
         # Print evaluation per attribute
         for attr, metrics in results.items():
@@ -94,6 +109,8 @@ class ModelEvaluator:
                   f"{report['macro avg']['precision']:.4f} /",
                   f"{report['macro avg']['recall']:.4f} /",
                   f"{report['macro avg']['f1-score']:.4f}")
+            print(f"Top-3 Accuracy: {metrics['top3_accuracy']:.4f}")
+            print(f"Top-5 Accuracy: {metrics['top5_accuracy']:.4f}")
 
     def plot_confusion_matrix(self, cm, classes, title='Confusion Matrix'):
         plt.figure(figsize=(10, 8))

@@ -44,7 +44,7 @@ class SaveTrainingStateCallback(tf.keras.callbacks.Callback):
             state = {'last_epoch': epoch}
             with open(state_path, 'w') as f:
                 json.dump(state, f)
-                
+
         # Save label encoders
         for attr, encoder in self.trainer.label_encoders.items():
             np.save(os.path.join(self.save_dir_resume, f'{attr}_classes.npy'), encoder.classes_)
@@ -85,6 +85,12 @@ class ClothingClassifierTrainer:
         self.label_encoders = {}
         self.augmentor = ImageDataGenerator(
             horizontal_flip=True,
+            brightness_range=[0.8, 1.2],
+            zoom_range=0.1,
+            rotation_range=15,
+            width_shift_range=0.05,
+            height_shift_range=0.05,
+            shear_range=0.05
         )
     
     def fit_label_encoders(self, *label_dicts):
