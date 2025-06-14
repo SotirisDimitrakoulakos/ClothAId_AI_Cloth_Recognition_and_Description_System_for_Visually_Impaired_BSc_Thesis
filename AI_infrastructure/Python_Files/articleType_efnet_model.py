@@ -36,7 +36,7 @@ class EfficientNetArtTypeClothingClassifier:
         output = Dense(self.num_classes, activation='softmax', name='articleType', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
         
         # Create model
-        model = Model(inputs=inputs, output=output)
+        model = Model(inputs=inputs, outputs=output)
         
         # Compile model
         optimizer = SGD(learning_rate=0.001, momentum=0.9)
