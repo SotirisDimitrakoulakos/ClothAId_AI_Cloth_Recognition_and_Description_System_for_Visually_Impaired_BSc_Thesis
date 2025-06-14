@@ -107,7 +107,7 @@ class ModelEvaluator:
 
         # Print evaluation per attribute
         for attr, metrics in results.items():
-            if attr in ['training', 'training_time', 'num_epochs']:
+            if attr in ['training', 'training_time', 'num_epochs', 'avg_inference_time']:
                 continue
 
             report = metrics['report']
@@ -131,7 +131,7 @@ class ModelEvaluator:
 
     def plot_all_confusion_matrices(self, results):
         for attr, metrics in results.items():
-            if attr in ['training', 'training_time', 'num_epochs']:
+            if attr in ['training', 'training_time', 'num_epochs', 'avg_inference_time']:
                 continue
             cm = metrics.get('confusion_matrix')
             classes = self.label_encoders[attr].classes_
