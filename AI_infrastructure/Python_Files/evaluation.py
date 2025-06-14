@@ -117,8 +117,10 @@ class ModelEvaluator:
                   f"{report['macro avg']['precision']:.4f} /",
                   f"{report['macro avg']['recall']:.4f} /",
                   f"{report['macro avg']['f1-score']:.4f}")
-            print(f"Top-3 Accuracy: {metrics['top3_accuracy']:.4f}")
-            print(f"Top-5 Accuracy: {metrics['top5_accuracy']:.4f}")
+            if metrics.get('top3_accuracy') is not None:
+                print(f"Top-3 Accuracy: {metrics['top3_accuracy']:.4f}")
+            if metrics.get('top5_accuracy') is not None:
+                print(f"Top-5 Accuracy: {metrics['top5_accuracy']:.4f}")
 
     def plot_confusion_matrix(self, cm, classes, title='Confusion Matrix'):
         plt.figure(figsize=(10, 8))
