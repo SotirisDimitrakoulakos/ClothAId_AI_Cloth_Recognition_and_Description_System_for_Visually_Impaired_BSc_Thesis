@@ -62,8 +62,15 @@ class ModelEvaluator:
             cm = confusion_matrix(true_labels, pred_labels)
 
             # Top-k accuracy
-            top3_acc = top_k_accuracy_score(true_labels, pred_probs, k=3, labels=range(total_classes))
-            top5_acc = top_k_accuracy_score(true_labels, pred_probs, k=5, labels=range(total_classes))
+            if total_classes > 3:
+                top3_acc = top_k_accuracy_score(true_labels, pred_probs, k=3, labels=range(total_classes))
+            else:
+                top3_acc = None  # Too few classes for top-3 to be meaningful
+
+            if total_classes > 5:
+                top5_acc = top_k_accuracy_score(true_labels, pred_probs, k=5, labels=range(total_classes))
+            else:
+                top5_acc = None  # Too few classes for top-5 to be meaningful
 
             results[attr] = {
                 'report': report,
