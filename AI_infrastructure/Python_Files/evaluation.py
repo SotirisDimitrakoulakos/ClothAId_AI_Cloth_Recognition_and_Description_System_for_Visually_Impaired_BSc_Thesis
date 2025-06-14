@@ -3,6 +3,7 @@ from sklearn.metrics import classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
 import time
+from sklearn.metrics import top_k_accuracy_score
 
 class ModelEvaluator:
     def __init__(self, model, label_encoders):
