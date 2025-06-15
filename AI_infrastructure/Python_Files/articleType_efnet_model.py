@@ -68,7 +68,7 @@ class EfficientNetArtTypeClothingClassifier:
         model = Model(inputs=inputs, outputs=output)
         if resume:
             # Compile model
-            optimizer = SGD(learning_rate=0.0005, momentum=0.9)
+            optimizer = SGD(learning_rate=0.00025, momentum=0.9)
         else:
             optimizer = SGD(learning_rate=0.001, momentum=0.9)
         
