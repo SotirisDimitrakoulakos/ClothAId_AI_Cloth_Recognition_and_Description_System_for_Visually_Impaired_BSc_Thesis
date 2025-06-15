@@ -288,7 +288,7 @@ class ClothingClassifierTrainer:
             f.write(self.model.to_json())
     
     @staticmethod
-    def load_model(model_name, model_arch, save_dir, best_weights=False, training=False):
+    def load_model(model_name, model_arch, save_dir, best_weights=False, training=False, only_artType=False):
         # Load model architecture
         model = model_arch
         
@@ -308,11 +308,20 @@ class ClothingClassifierTrainer:
 
         # Load label encoders
         label_encoders = {}
-        for attr in ['masterCategory', 'subCategory', 'articleType', 
-                    'baseColour', 'gender', 'season', 'usage']:
+        if only_artType:
+            # Only load articleType encoder
+            attr = 'articleType'
             classes = np.load(os.path.join(save_dir, f'{attr}_classes.npy'))
             encoder = LabelEncoder()
             encoder.classes_ = classes
             label_encoders[attr] = encoder
+            return model, label_encoders
+        else:
+            for attr in ['masterCategory', 'subCategory', 'articleType', 
+                        'baseColour', 'gender', 'season', 'usage']:
+                classes = np.load(os.path.join(save_dir, f'{attr}_classes.npy'))
+                encoder = LabelEncoder()
+                encoder.classes_ = classes
+                label_encoders[attr] = encoder
         
         return model, label_encoders
