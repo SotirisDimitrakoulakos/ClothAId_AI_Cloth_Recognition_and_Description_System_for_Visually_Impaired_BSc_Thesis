@@ -11,6 +11,14 @@ class ModelEvaluator:
         self.label_encoders = label_encoders
 
     def evaluate(self, X_test, y_test, history=None, training_time=None, num_epochs=None):
+
+        # Handle single-task y_test (e.g., a 1D array) by wrapping it
+        if not isinstance(y_test, dict):
+            y_test = {'articleType': y_test}
+            is_single_task = True
+        else:
+            is_single_task = len(y_test) == 1
+
         # Encode test labels
         y_test_encoded = {}
         for attr, labels in y_test.items():
@@ -29,6 +37,11 @@ class ModelEvaluator:
             if len(y_pred_raw) != len(y_test):
                 raise ValueError("Number of model outputs does not match number of attributes.")
             y_pred = {attr: preds for attr, preds in zip(y_test.keys(), y_pred_raw)}
+        elif isinstance(y_pred_raw, np.ndarray):
+            if is_single_task:
+                y_pred = {'articleType': y_pred_raw}
+            else:
+                raise TypeError("Model output is ndarray but multiple outputs expected.")
         else:
             raise TypeError("Model prediction output must be dict or list.")
         

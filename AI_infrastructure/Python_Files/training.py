@@ -84,16 +84,29 @@ class ClothingClassifierTrainer:
         self.save_dir = save_dir
         self.save_dir_resume = save_dir_resume
         self.label_encoders = {}
-        self.augmentor = ImageDataGenerator(
-            horizontal_flip=True,
-            brightness_range=[0.8, 1.2],
-            zoom_range=0.1,
-            rotation_range=15,
-            width_shift_range=0.05,
-            height_shift_range=0.05,
-            shear_range=0.05
-        )
-    
+        if model_name == 'efficientnetB0_artType':
+            self.augmentor = ImageDataGenerator(
+                horizontal_flip=True
+            )
+        elif model_name == 'efficientnetB1_artType':
+            self.augmentor = ImageDataGenerator(
+                horizontal_flip=True,
+                rotation_range=10,
+                zoom_range=0.1,
+                width_shift_range=0.1,
+                height_shift_range=0.1,
+            )
+        else:
+            self.augmentor = ImageDataGenerator(
+                horizontal_flip=True,
+                brightness_range=[0.8, 1.2],
+                zoom_range=0.1,
+                rotation_range=15,
+                width_shift_range=0.05,
+                height_shift_range=0.05,
+                shear_range=0.05
+            )
+        
     def fit_label_encoders(self, *label_dicts):
         all_attrs = label_dicts[0].keys()
         for attr in all_attrs:
