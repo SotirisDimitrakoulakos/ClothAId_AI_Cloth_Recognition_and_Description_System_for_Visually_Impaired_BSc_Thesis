@@ -31,8 +31,7 @@ class EfficientNetArtTypeClothingClassifier:
                 input_shape=input_shape
             )
         
-    def build_fine_tuned_model(self):
-
+    def build_fine_tuned_model(self, resume=False):
         # Unfreeze all layers except BatchNorm
         for layer in self.base_model.layers:
             if isinstance(layer, tf.keras.layers.BatchNormalization):
@@ -67,9 +66,11 @@ class EfficientNetArtTypeClothingClassifier:
 
         # Create model
         model = Model(inputs=inputs, outputs=output)
-        
-        # Compile model
-        optimizer = SGD(learning_rate=0.001, momentum=0.9)
+        if resume:
+            # Compile model
+            optimizer = SGD(learning_rate=0.0005, momentum=0.9)
+        else:
+            optimizer = SGD(learning_rate=0.001, momentum=0.9)
         
         model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
         print("Model output:", model.output_names)
