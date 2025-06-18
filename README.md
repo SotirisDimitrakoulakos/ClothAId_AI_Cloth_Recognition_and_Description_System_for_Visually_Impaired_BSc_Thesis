@@ -1,3 +1,7 @@
+clothAId
+BSc Thesis: "Artificial Intelligence System for Clothing Recognition and Description to the Visually Impaired,  
+Using Custom Developed Deep Learning Models" 
+
 Prerequisites:
 - Clone this directory to your enviroment.
 - Make sure you enviroment has enough computational power to go through the following processes.
@@ -18,3 +22,5 @@ To replicate:
 5. In the local host address, put in the local address of your PC, which you can find through the command prompt. Also make sure both your PC and the mobile device are connected to the same WiFi network.
 6. Once you do that, press "Run" on Android Studio and the .apk application will download to your mobile device. After that, you should run the api_server.py file in your PC enviiroment through the command prompt.
 7. Use the application normally.
+
+by Sotirios A. Dimitrakoulakos
