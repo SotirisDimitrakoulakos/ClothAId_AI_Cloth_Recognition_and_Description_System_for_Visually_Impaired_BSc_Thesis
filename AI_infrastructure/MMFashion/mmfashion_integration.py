@@ -1,18 +1,51 @@
-import mmcv
-import os
 import sys
 import json
+import torch
 from mmfashion.apis import init_model, inference_recognizer
 
 class MMFashionPredictor:
+    # Your raw attribute list (attribute_name + attribute_type)
+    ATTR_DATA = """
+floral               1
+graphic              1
+striped              1
+embroidered          1
+pleated              1
+solid                1
+lattice              1
+long_sleeve          2
+short_sleeve         2
+sleeveless           2
+maxi_length          3
+mini_length          3
+no_dress             3
+crew_neckline        4
+v_neckline           4
+square_neckline      4
+no_neckline          4
+denim                5
+chiffon              5
+cotton               5
+leather              5
+faux                 5
+knit                 5
+tight                6
+loose                6
+conventional         6
+"""
+
     def __init__(self):
-        # Initialize MMFashion models
+        # Load model config and checkpoint
         self.config_file = 'configs/global_predictor_vgg_attr.py'
-        self.checkpoint_file = 'checkpoints/latest.pth' 
-        self.model = init_model(self.config_file, self.checkpoint_file, device='cuda:0')
+        self.checkpoint_file = 'checkpoints/latest.pth'
+        self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        self.model = init_model(self.config_file, self.checkpoint_file, device=self.device)
+
+        # Parse attribute data and build groups
+        self.attribute_mapping = self.build_attribute_mapping()
         
-        # Define which attributes to predict for which article types
-        self.attribute_mapping = {
+        # Mapping articleType → which attribute categories to predict (your original mapping)
+        self.article_type_to_categories = {
             'shirts': ['pattern', 'sleeve_length', 'neckline', 'fabric'],
             'jeans': ['pattern', 'fabric' ],
             'track pants': ['pattern', 'fabric' ],
@@ -83,35 +116,52 @@ class MMFashionPredictor:
             'suits': ['pattern', 'sleeve_length', 'neckline', 'fabric' ]
         }
     
+    def build_attribute_mapping(self):
+        # Build attribute mapping dict: category -> list of attribute names
+        attr_lines = self.ATTR_DATA.strip().split('\n')
+        attr_type_map = {1: 'pattern', 2: 'sleeve_length', 4: 'neckline', 5: 'fabric'}
+        grouped_attrs = {'pattern': [], 'sleeve_length': [], 'neckline': [], 'fabric': []}
+
+        for line in attr_lines:
+            parts = line.strip().split()
+            if len(parts) == 2:
+                name, atype = parts[0], int(parts[1])
+                if atype in attr_type_map:
+                    grouped_attrs[attr_type_map[atype]].append(name)
+
+        return grouped_attrs
+
     def predict(self, image_path, article_type):
-        # Determine which attributes to predict
-        attributes_to_predict = self.attribute_mapping.get(
-            article_type.lower(), 
-            ['pattern', 'fabric']  # Default attributes
-        )
-        
-        # Perform prediction
+        # Get categories to predict for this article_type
+        categories = self.article_type_to_categories.get(article_type.lower(), ['pattern', 'fabric'])
+
+        # Build list of attribute names to predict
+        attrs_to_predict = []
+        for cat in categories:
+            attrs_to_predict.extend(self.attribute_mapping.get(cat, []))
+
+        # Run inference on image (returns dict attr_name -> score)
         results = inference_recognizer(self.model, image_path)
-        
-        # Filter results to only include relevant attributes
-        filtered_results = {}
-        for attr in attributes_to_predict:
-            if attr in results:
-                filtered_results[attr] = results[attr]
-        
+
+        # Filter to only attributes relevant for this article type
+        filtered_results = {attr: results[attr] for attr in attrs_to_predict if attr in results}
+
         return filtered_results
-    
-    def main():
-        if len(sys.argv) != 3:
-            print("Usage: python predict_mmfashion.py <image_path> <article_type>")
-            sys.exit(1)
 
-        image_path = sys.argv[1]
-        article_type = sys.argv[2]
 
-        predictor = MMFashionPredictor()
-        preds = predictor.predict(image_path, article_type)
-        print(json.dumps(preds))
+def main():
+    if len(sys.argv) != 3:
+        print("Usage: python predict_mmfashion.py <image_path> <article_type>", file=sys.stderr)
+        sys.exit(1)
 
-    if __name__ == "__main__":
-        main()
+    image_path = sys.argv[1]
+    article_type = sys.argv[2]
+
+    predictor = MMFashionPredictor()
+    preds = predictor.predict(image_path, article_type)
+
+    print(json.dumps(preds))
+
+
+if __name__ == "__main__":
+    main()
