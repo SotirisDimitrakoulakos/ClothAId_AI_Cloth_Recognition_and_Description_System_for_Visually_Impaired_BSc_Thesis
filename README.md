@@ -26,4 +26,4 @@ To replicate:
 6. Once you do that, press "Run" on Android Studio and the .apk application will download to your mobile device. After that, you should run the api_server.py file in your PC enviiroment through the command prompt.
 7. Use the application normally.
 
-by Sotirios A. Dimitrakoulakos
+Created by Sotirios A. Dimitrakoulakos
