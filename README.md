@@ -5,7 +5,8 @@
 
 Prerequisites:
 - Clone this directory to your enviroment.
-- Install all the appropriate dependencies, configs and checkpoints files for the usage of the MMFashion model,inside the "MMFashion" directory (may need to create virtual enviroment in that directory first too).
+- Install all the appropriate dependencies, configs and checkpoints files for the usage of the MMFashion model inside the "MMFashion" directory, if not already there (may need to create virtual enviroment in that directory first too).
+- -If you want to replicate the work and test out all the models, unzip the "All_Saved_Models_Developed.zip" file and replace the "Saved_Models" folder that comes with the repo with the one that comes from the .zip extraction.
 - Make sure you enviroment has enough computational power to go through the following processes.
 
 To use:
