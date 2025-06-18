@@ -8,7 +8,7 @@ import pickle
 import pandas as pd
 
 from prediction import ClothingAttributePredictor
-from mmfashion_integration import MMFashionPredictor
+from AI_infrastructure.MMFashion.mmfashion_integration import MMFashionPredictor
 
 # Import your custom model builders and loaders here
 from efficientnet_classifier import EfficientNetClothingClassifier
