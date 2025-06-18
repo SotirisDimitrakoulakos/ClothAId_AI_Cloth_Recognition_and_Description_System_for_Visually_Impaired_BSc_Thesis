@@ -7,3 +7,6 @@ C:/Users/DimSot1/Documents/University/BSc_THESIS/ClothAId_AI_Cloth_Recognition_a
 AI_infrastructure/Saved_Models/*.json filter=lfs diff=lfs merge=lfs -text
 AI_infrastructure/Saved_Models/*.npy filter=lfs diff=lfs merge=lfs -text
 *.json filter=lfs diff=lfs merge=lfs -text
+*.h5 filter=lfs diff=lfs merge=lfs -text
+*.zip filter=lfs diff=lfs merge=lfs -text
+*.pth filter=lfs diff=lfs merge=lfs -text
