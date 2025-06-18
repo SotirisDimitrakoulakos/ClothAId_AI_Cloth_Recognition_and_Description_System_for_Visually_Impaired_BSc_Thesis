@@ -5,6 +5,7 @@
 
 Prerequisites:
 - Clone this directory to your enviroment.
+- Install all the appropriate dependencies, configs and checkpoints files for the usage of the MMFashion model,inside the "MMFashion" directory (may need to create virtual enviroment in that directory first too).
 - Make sure you enviroment has enough computational power to go through the following processes.
 
 To use:
