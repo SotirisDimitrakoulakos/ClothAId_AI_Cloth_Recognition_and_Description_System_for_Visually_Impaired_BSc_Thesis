@@ -1,6 +1,7 @@
-clothAId
-BSc Thesis: "Artificial Intelligence System for Clothing Recognition and Description to the Visually Impaired,  
-Using Custom Developed Deep Learning Models" 
+# *clothAId*
+
+## BSc Thesis: "Artificial Intelligence System for Clothing Recognition and Description to the Visually Impaired, Using Custom Developed Deep Learning Models" 
+
 
 Prerequisites:
 - Clone this directory to your enviroment.
