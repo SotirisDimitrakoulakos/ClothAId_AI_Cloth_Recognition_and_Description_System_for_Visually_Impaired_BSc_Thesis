@@ -1,128 +1,102 @@
 package com.example.clothaid_thesis
 
 import android.Manifest
-import android.app.Activity
-import android.content.Intent
-import android.graphics.Bitmap
-import android.net.Uri
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.provider.MediaStore
 import android.speech.tts.TextToSpeech
-import android.view.View
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.ProgressBar
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.FileProvider
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.asRequestBody
-import org.json.JSONObject
-import java.io.File
-import java.io.IOException
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.commit
 import java.util.*
 
-class MainActivity : AppCompatActivity() {
-    private lateinit var imageUri: Uri
-    private lateinit var photoFile: File
-    private lateinit var progressBar: ProgressBar
-    private lateinit var textToSpeech: TextToSpeech
-    private lateinit var cameraButton: Button
-    private lateinit var imageView: ImageView
+class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
+
+    private lateinit var tts: TextToSpeech
+    private var isTtsReady = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        loadPlaceholderFragment() // before requestPermissions()
+        requestPermissions()
+        tts = TextToSpeech(this, this)
+    }
 
-        imageView = findViewById(R.id.imageView)
-        progressBar = findViewById(R.id.progressBar)
-        cameraButton = findViewById(R.id.cameraButton)
-
-        textToSpeech = TextToSpeech(this) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                textToSpeech.language = Locale.US
-            }
-        }
-
-        cameraButton.setOnClickListener {
-            dispatchTakePictureIntent()
+    private fun loadPlaceholderFragment() {
+        supportFragmentManager.commit {
+            replace(R.id.fragment_container, PlaceholderFragment())
         }
     }
 
-    private fun dispatchTakePictureIntent() {
-        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        photoFile = File.createTempFile("IMG_", ".jpg", getExternalFilesDir(Environment.DIRECTORY_PICTURES))
-        imageUri = FileProvider.getUriForFile(this, "$packageName.fileprovider", photoFile)
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri)
-        startActivityForResult(intent, REQUEST_IMAGE_CAPTURE)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == Activity.RESULT_OK) {
-            imageView.setImageURI(imageUri)
-            uploadImageToServer(photoFile)
+    private fun requestPermissions() {
+        val storagePermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
         }
-    }
 
-    private fun uploadImageToServer(imageFile: File) {
-        progressBar.visibility = View.VISIBLE
+        val requiredPermissions = arrayOf(
+            Manifest.permission.CAMERA,
+            storagePermission
+        )
 
-        val requestBody = MultipartBody.Builder()
-            .setType(MultipartBody.FORM)
-            .addFormDataPart(
-                "image", "clothing.jpg",
-                imageFile.asRequestBody("image/jpeg".toMediaType())
-            )
-            .build()
-
-        val request = Request.Builder()
-            .url("http://YOUR_LAPTOP_IP:5000/predict") // ⚠️ Replace with your local server IP
-            .post(requestBody)
-            .build()
-
-        OkHttpClient().newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                runOnUiThread {
-                    progressBar.visibility = View.GONE
-                    Toast.makeText(this@MainActivity, "Upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
+        val missing = requiredPermissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (missing.isEmpty()) {
+            loadCameraFragment()
+        } else {
+            val shouldExplain = missing.any {
+                shouldShowRequestPermissionRationale(it)
             }
 
-            override fun onResponse(call: Call, response: Response) {
-                val responseBody = response.body?.string()
-                runOnUiThread {
-                    progressBar.visibility = View.GONE
-                    responseBody?.let {
-                        val result = parseResponse(it)
-                        speakDescription(result)
-                    }
-                }
+            if (shouldExplain) {
+                // Show a custom dialog explaining why the permissions are needed.
+                // After user agrees, call requestPermissionLauncher.launch(...)
+            } else {
+                requestPermissionLauncher.launch(missing.toTypedArray())
             }
-        })
-    }
-
-    private fun parseResponse(json: String): String {
-        val jsonObject = JSONObject(json)
-        val description = StringBuilder()
-
-        val keys = jsonObject.keys()
-        while (keys.hasNext()) {
-            val key = keys.next()
-            val value = jsonObject.getString(key)
-            description.append("$key: $value. ")
         }
-
-        return description.toString()
     }
 
-    private fun speakDescription(description: String) {
-        textToSpeech.speak(description, TextToSpeech.QUEUE_FLUSH, null, null)
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions.all { it.value }) {
+            loadCameraFragment()
+        } else {
+            Toast.makeText(this, "Permissions denied. App may not work properly.", Toast.LENGTH_LONG).show()
+        }
     }
 
-    companion object {
-        private const val REQUEST_IMAGE_CAPTURE = 1
+    private fun loadCameraFragment() {
+        supportFragmentManager.commit {
+            replace(R.id.fragment_container, CameraFragment())
+        }
+    }
+
+    override fun onInit(status: Int) {
+        isTtsReady = status == TextToSpeech.SUCCESS
+        if (isTtsReady) {
+            tts.language = Locale("en", "US") // American English
+        }
+    }
+
+    fun speak(text: String) {
+        if (isTtsReady) {
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+        }
+    }
+
+    fun stopSpeaking() {
+        tts.stop()
+    }
+
+    override fun onDestroy() {
+        tts.shutdown()
+        super.onDestroy()
     }
 }
