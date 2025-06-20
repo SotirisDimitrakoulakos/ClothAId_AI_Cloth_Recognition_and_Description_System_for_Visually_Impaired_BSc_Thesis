@@ -4,6 +4,7 @@ package com.example.clothaid_thesis
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.view.*
@@ -22,6 +23,10 @@ import com.google.common.util.concurrent.ListenableFuture
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
+import android.view.MotionEvent
+import android.view.GestureDetector
+
 
 class CameraFragment : Fragment() {
 
@@ -93,6 +98,19 @@ class CameraFragment : Fragment() {
                 return true
             }
 
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                if (e1 == null) return false
+                val deltaX = e2.x - e1.x
+                if (abs(deltaX) > SWIPE_THRESHOLD && abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                    if (deltaX < 0) {
+                        openMostRecentGalleryImage()
+                        return true
+                    }
+                }
+                return false
+            }
+
+
             override fun onLongPress(e: MotionEvent) {
                 Toast.makeText(requireContext(), "Camera is active", Toast.LENGTH_SHORT).show()
             }
@@ -117,11 +135,18 @@ class CameraFragment : Fragment() {
         }
     }
 
-    private fun isCameraPermissionGranted(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            requireContext(),
-            Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_GRANTED
+    private fun openMostRecentGalleryImage() {
+        val recentImages = GalleryNavigator.getRecentImagePaths(requireContext())
+        if (recentImages.isNotEmpty()) {
+            val mostRecent = recentImages[0]
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, ConfirmFragment.newInstance(mostRecent, false))
+                .addToBackStack(null)
+                .commit()
+            playPageFlipSound()
+        } else {
+            Toast.makeText(requireContext(), "No recent images found", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun startCamera() {
@@ -172,7 +197,7 @@ class CameraFragment : Fragment() {
                         requireActivity().supportFragmentManager
                             .beginTransaction()
                             .replace(R.id.fragment_container,
-                                ConfirmFragment.newInstance(photoPath)
+                                ConfirmFragment.newInstance(photoPath, true)
                             )
                             .addToBackStack(null)
                             .commit()
@@ -190,6 +215,12 @@ class CameraFragment : Fragment() {
         mediaPlayer?.start()
     }
 
+    private fun playPageFlipSound() {
+        val mediaPlayer = MediaPlayer.create(requireContext(), R.raw.pageturn)
+        mediaPlayer.setOnCompletionListener { it.release() }
+        mediaPlayer.start()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
@@ -198,5 +229,9 @@ class CameraFragment : Fragment() {
 
     companion object {
         private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
+        private const val SWIPE_THRESHOLD = 100
+        private const val SWIPE_VELOCITY_THRESHOLD = 100
     }
+
+
 }

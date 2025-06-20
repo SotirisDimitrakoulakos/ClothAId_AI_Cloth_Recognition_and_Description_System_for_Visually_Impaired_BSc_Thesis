@@ -1,32 +1,54 @@
 package com.example.clothaid_thesis
 
+import android.content.Context
 import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.util.AttributeSet
 import android.view.*
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.clothaid_thesis.databinding.FragmentConfirmBinding
+import java.io.File
+import kotlin.math.abs
 
 class ConfirmFragment : Fragment() {
 
     private var _binding: FragmentConfirmBinding? = null
     private val binding get() = _binding!!
 
-    private var photoPath: String? = null
+    private lateinit var imagePaths: List<String>
+    private var currentIndex: Int = 0
+    private var lastSwipeTime = 0L
+    private var touchStartX = 0f
+    private var hasSwiped = false
+
     private var mediaPlayer: MediaPlayer? = null
 
+    private var imagePath: String? = null
+    private var isFromCameraCapture = false
+
     companion object {
-        private const val ARG_PHOTO_PATH = "photo_path"
-        fun newInstance(photoPath: String) = ConfirmFragment().apply {
-            arguments = Bundle().apply {
-                putString(ARG_PHOTO_PATH, photoPath)
-            }
+        private const val SWIPE_THRESHOLD = 100
+
+        private const val ARG_IMAGE_PATH = "image_path"
+        private const val ARG_FROM_CAMERA = "from_camera"
+        fun newInstance(imagePath: String, isFromCameraCapture: Boolean = false): ConfirmFragment {
+            val fragment = ConfirmFragment()
+            val args = Bundle()
+            args.putString(ARG_IMAGE_PATH, imagePath)
+            args.putBoolean(ARG_FROM_CAMERA, isFromCameraCapture)
+            fragment.arguments = args
+            return fragment
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        photoPath = arguments?.getString(ARG_PHOTO_PATH)
+        arguments?.let {
+            imagePath = it.getString(ARG_IMAGE_PATH)
+            isFromCameraCapture = it.getBoolean(ARG_FROM_CAMERA, false)
+        }
     }
 
     override fun onCreateView(
@@ -40,44 +62,128 @@ class ConfirmFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Show the image
-        photoPath?.let {
-            val bitmap = BitmapFactory.decodeFile(it)
-            binding.imageView.setImageBitmap(bitmap)
+        if (isFromCameraCapture) {
+            // Only show the single captured image, disable swiping
+            imagePaths = listOf(imagePath ?: "")
+            currentIndex = 0
+        } else {
+            // Load recent gallery images for swiping
+            imagePaths = GalleryNavigator.getRecentImagePaths(requireContext())
+            val initialPath = arguments?.getString(ARG_IMAGE_PATH)
+            currentIndex = imagePaths.indexOfFirst { it == initialPath }.takeIf { it >= 0 } ?: 0
         }
 
-        // Single tap: send photo to server (play ding sound)
-        binding.root.setOnClickListener {
-            mediaPlayer = MediaPlayer.create(requireContext(), R.raw.sample_confirm_success)
-            mediaPlayer?.setOnCompletionListener {
-                it.release()
-                // Navigate after the sound completes
-                parentFragmentManager.beginTransaction()
-                    .replace(R.id.fragment_container, LoadingFragment.newInstance(photoPath!!))
-                    .addToBackStack(null)
-                    .commit()
+        showImageAt(currentIndex)
+
+        if (!isFromCameraCapture) {
+            // Enable swipe gestures only when not from camera capture
+            binding.imageView.apply {
+                setOnTouchListener { v, event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            touchStartX = event.x
+                            hasSwiped = false
+                            false
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            v.performClick()
+                            val deltaX = event.x - touchStartX
+                            val now = System.currentTimeMillis()
+                            if (abs(deltaX) > SWIPE_THRESHOLD && now - lastSwipeTime > 300) {
+                                lastSwipeTime = now
+                                hasSwiped = true
+                                if (deltaX > 0) swipeRight() else swipeLeft()
+                            } else {
+                                confirmImage()
+                            }
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                setOnClickListener {
+                    // Optional: handle click if needed
+                }
             }
-            mediaPlayer?.start()
+        } else {
+            // From camera capture: tap to confirm only, no swipe
+            binding.imageView.setOnClickListener {
+                confirmImage()
+            }
         }
 
-        // Long press: go back to camera (pop all fragments)
-        binding.root.setOnLongClickListener {
-            parentFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
-            true
+        binding.imageView.setOnLongClickListener {
+            if (!hasSwiped) {
+                requireActivity().supportFragmentManager.popBackStack()
+                true
+            } else {
+                false // ignore long press if just swiped
+            }
+        }
+    }
+
+    private fun swipeLeft() {
+        if (currentIndex < imagePaths.size - 1) {
+            currentIndex++
+            showImageAt(currentIndex)
+            playSwipeSound()
+        }
+    }
+
+    private fun swipeRight() {
+        if (currentIndex > 0) {
+            currentIndex--
+            showImageAt(currentIndex)
+            playSwipeSound()
+        }
+    }
+
+    private fun showImageAt(index: Int) {
+        val path = imagePaths.getOrNull(index) ?: return
+        val bitmap = BitmapFactory.decodeFile(path)
+        binding.imageView.setImageBitmap(bitmap)
+    }
+
+    private fun confirmImage() {
+        val path = imagePaths.getOrNull(currentIndex)
+        if (path != null && File(path).exists()) {
+            playConfirmSound()
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, LoadingFragment.newInstance(path))
+                .addToBackStack(null)
+                .commit()
+        } else {
+            Toast.makeText(requireContext(), "Image not found", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun playSwipeSound() {
+        MediaPlayer.create(requireContext(), R.raw.pageturn).apply {
+            setOnCompletionListener { it.release() }
+            start()
         }
     }
 
     private fun playConfirmSound() {
-        mediaPlayer = MediaPlayer.create(requireContext(), R.raw.sample_confirm_success)
-        mediaPlayer?.setOnCompletionListener {
-            it.release()
+        MediaPlayer.create(requireContext(), R.raw.sample_confirm_success).apply {
+            setOnCompletionListener { it.release() }
+            start()
         }
-        mediaPlayer?.start()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
         mediaPlayer?.release()
+    }
+}
+
+class AccessibleImageView @JvmOverloads constructor(
+    context: Context, attrs: AttributeSet? = null
+) : androidx.appcompat.widget.AppCompatImageView(context, attrs) {
+
+    override fun performClick(): Boolean {
+        super.performClick()
+        return true
     }
 }

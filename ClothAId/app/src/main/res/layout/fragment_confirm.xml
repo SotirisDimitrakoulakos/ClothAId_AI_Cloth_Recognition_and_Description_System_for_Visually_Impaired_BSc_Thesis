@@ -5,10 +5,9 @@
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <ImageView
+    <com.example.clothaid_thesis.AccessibleImageView
         android:id="@+id/imageView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:contentDescription="Photo Preview"
         android:scaleType="fitCenter" />
 </FrameLayout>

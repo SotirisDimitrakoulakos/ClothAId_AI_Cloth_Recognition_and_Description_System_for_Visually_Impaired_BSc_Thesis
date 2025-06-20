@@ -26,16 +26,23 @@ class ResultsFragment : Fragment() {
         }
     }
 
+    private fun capitalizeFirstLetter(text: String): String {
+        return if (text.isNotEmpty()) text.substring(0, 1).uppercase() + text.substring(1) else text
+    }
+
     private fun formatPredictions(jsonString: String): String {
         return try {
             val jsonObj = JSONObject(jsonString)
-            val masterCategory = jsonObj.optString("masterCategory", "N/A")
-            val subCategory = jsonObj.optString("subCategory", "N/A")
-            val articleType = jsonObj.optString("articleType", "N/A")
-            val baseColour = jsonObj.optString("baseColour", "N/A")
-            val gender = jsonObj.optString("gender", "N/A")
-            val season = jsonObj.optString("season", "N/A")
-            val usage = jsonObj.optString("usage", "N/A")
+            val masterCategory = capitalizeFirstLetter(jsonObj.optString("masterCategory", "N/A"))
+            val subCategory = capitalizeFirstLetter(jsonObj.optString("subCategory", "N/A"))
+            var articleType = capitalizeFirstLetter(jsonObj.optString("articleType", "N/A"))
+            val baseColour = capitalizeFirstLetter(jsonObj.optString("baseColour", "N/A"))
+            val gender = capitalizeFirstLetter(jsonObj.optString("gender", "N/A"))
+            val season = capitalizeFirstLetter(jsonObj.optString("season", "N/A"))
+            val usage = capitalizeFirstLetter(jsonObj.optString("usage", "N/A"))
+            if (articleType == "Tshirts"){
+                articleType = "T-Shirts"
+            }
 
             """
         Clothing Characteristics:
