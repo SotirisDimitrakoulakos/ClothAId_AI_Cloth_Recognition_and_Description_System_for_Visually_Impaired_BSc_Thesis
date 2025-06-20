@@ -16,7 +16,7 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 # Load balanced metadata (adjust path as needed)
-balanced_metadata = pd.read_parquet('../Data/pre_data_2/filtered_balanced_dataset_ef_2.parquet')
+balanced_metadata = pd.read_parquet('C:\\Users\\DimSot1\\Documents\\University\\BSc_THESIS\\ClothAId_AI_Cloth_Recognition_and_Description_System_for_Visually_Impaired_BSc_Thesis\\AI_infrastructure\\Data\\pre_data_2\\EFN\\filtered_balanced_dataset_ef_2.parquet')
 
 num_classes_dict = {
     attr: len(balanced_metadata[attr].unique())
@@ -56,13 +56,21 @@ single_model, single_label_encoders = load_single_task_model()
 multi_predictor = ClothingAttributePredictor(multi_model, multi_label_encoders, 'EffNet_Fashion_3')
 single_predictor = ClothingAttributePredictor(single_model, single_label_encoders, 'EffNet_artTypeB1')
 
+@app.route('/', methods=['GET'])
+def home():
+    return "Flask server is running and reachable!"
+
 @app.route('/predict', methods=['POST'])
 def predict():
+    print("=== /predict POST received ===")
     try:
         if 'image' not in request.files:
             return jsonify({'status': 'error', 'message': 'No image provided'}), 400
 
         image_file = request.files['image']
+        print(f"Received image filename: {image_file.filename}")
+        print(f"Content-Type: {image_file.content_type}")
+        print(f"Content-Length: {request.content_length}")
         image_bytes = image_file.read()
 
         try:
@@ -83,6 +91,8 @@ def predict():
 
         # Combine results: articleType from single-task + other attrs from multi-task
         combined_preds = {**fashion_preds, 'articleType': article_type_value}
+
+        print(f"Prediction results sent: {combined_preds}")
 
         return jsonify({'status': 'success', 'predictions': combined_preds})
 
