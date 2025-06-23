@@ -44,7 +44,7 @@ def load_single_task_model():
         model_name='efficientnetB1_artType',
         model_arch=single_model_arch,
         save_dir=single_model_dir,
-        best_weights=False,
+        best_weights=True,
         only_artType=True
     )
     return single_model, single_label_encoders
