@@ -21,7 +21,7 @@
             android:layout_height="wrap_content"
             android:textColor="#FFFFFF"
             android:textSize="20sp"
-            android:background="#80000000"
+            android:background="@drawable/rounded_text_background"
             android:padding="16dp"
             android:layout_gravity="center" />
     </ScrollView>

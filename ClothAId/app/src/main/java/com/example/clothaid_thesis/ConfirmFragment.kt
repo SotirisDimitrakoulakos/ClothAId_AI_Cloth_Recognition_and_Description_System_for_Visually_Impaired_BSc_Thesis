@@ -114,6 +114,7 @@ class ConfirmFragment : Fragment() {
 
         binding.imageView.setOnLongClickListener {
             if (!hasSwiped) {
+                playReturnSound()
                 requireActivity().supportFragmentManager.popBackStack()
                 true
             } else {
@@ -159,6 +160,13 @@ class ConfirmFragment : Fragment() {
 
     private fun playSwipeSound() {
         MediaPlayer.create(requireContext(), R.raw.pageturn).apply {
+            setOnCompletionListener { it.release() }
+            start()
+        }
+    }
+
+    private fun playReturnSound() {
+        MediaPlayer.create(requireContext(), R.raw.return_sound).apply {
             setOnCompletionListener { it.release() }
             start()
         }

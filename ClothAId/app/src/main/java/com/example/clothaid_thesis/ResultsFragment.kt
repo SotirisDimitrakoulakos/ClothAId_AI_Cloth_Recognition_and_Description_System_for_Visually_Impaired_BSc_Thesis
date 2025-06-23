@@ -1,5 +1,6 @@
 package com.example.clothaid_thesis
 
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -28,6 +29,13 @@ class ResultsFragment : Fragment() {
 
     private fun capitalizeFirstLetter(text: String): String {
         return if (text.isNotEmpty()) text.substring(0, 1).uppercase() + text.substring(1) else text
+    }
+
+    private fun playReturnSound() {
+        MediaPlayer.create(requireContext(), R.raw.return_sound).apply {
+            setOnCompletionListener { it.release() }
+            start()
+        }
     }
 
     private fun formatPredictions(jsonString: String): String {
@@ -87,6 +95,7 @@ class ResultsFragment : Fragment() {
         // Long press: go back to camera (pop all fragments)
         binding.invisibleLongPressOverlay.setOnLongClickListener {
             (activity as? MainActivity)?.stopSpeaking()
+            playReturnSound()
             parentFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
             true
         }

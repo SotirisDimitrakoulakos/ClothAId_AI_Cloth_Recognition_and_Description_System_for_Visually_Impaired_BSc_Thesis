@@ -88,17 +88,20 @@ class CameraFragment : Fragment() {
         // Gesture detector
         gestureDetector = GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
+                playCamSwitchSound()
                 toggleCamera()
                 return true
             }
 
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                (activity as? MainActivity)?.stopSpeaking()
                 playShutterSound()
                 takePhoto()
                 return true
             }
 
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                (activity as? MainActivity)?.stopSpeaking()
                 if (e1 == null) return false
                 val deltaX = e2.x - e1.x
                 if (abs(deltaX) > SWIPE_THRESHOLD && abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
@@ -112,7 +115,9 @@ class CameraFragment : Fragment() {
 
 
             override fun onLongPress(e: MotionEvent) {
-                Toast.makeText(requireContext(), "Camera is active", Toast.LENGTH_SHORT).show()
+                val prompt = "Camera is active"
+                Toast.makeText(requireContext(), prompt, Toast.LENGTH_SHORT).show()
+                (activity as? MainActivity)?.speak(prompt)
             }
         })
 
@@ -209,6 +214,14 @@ class CameraFragment : Fragment() {
 
     private fun playShutterSound() {
         mediaPlayer = MediaPlayer.create(requireContext(), R.raw.camera_shutter)
+        mediaPlayer?.setOnCompletionListener {
+            it.release()
+        }
+        mediaPlayer?.start()
+    }
+
+    private fun playCamSwitchSound() {
+        mediaPlayer = MediaPlayer.create(requireContext(), R.raw.camera_switch)
         mediaPlayer?.setOnCompletionListener {
             it.release()
         }
