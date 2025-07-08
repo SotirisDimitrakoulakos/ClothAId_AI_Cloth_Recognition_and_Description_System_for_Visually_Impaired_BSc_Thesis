@@ -11,7 +11,7 @@ Prerequisites:
 
 To use:
 1. Open the ClothAId directory/project with Android Studio. Connect your android mobile phone to your PC and select your device as the device to run the app in (instead) of the simmulator.
-2. In the local host address, put in the local address of your PC, which you can find through the command prompt. Also make sure both your PC and the mobile device are connected to the same WiFi network.
+2. In the local host address and in the network configuration xml file, put in the local address of your PC, which you can find through the command prompt (ipconfig). Also make sure both your PC and the mobile device are connected to the same WiFi network.
 3. In the api_server.py, put the the location address of the .parquet file on your local machine.
 4. Once you do that, press "Run" on Android Studio and the .apk application will download to your mobile device. After that, you should run the api_server.py file in your PC enviiroment through the command prompt.
 5. Use the application normally.
@@ -23,7 +23,7 @@ To replicate:
 3. In an enviroment with enough computational resources for model training, run the corresponding cells needed of the "AI_inf_main.ipynb" notebook one-by-one,
    which will be using the python scripts in the "Python_Files" directory (change the directory names in the cells to the ones corresponding to your enviroment, if    needed).
 4. Open the ClothAId directory/project with Android Studio. Connect your android mobile phone to your PC and select your device as the device to run the app in (instead) of the simmulator.
-5. In the local host address, put in the local address of your PC, which you can find through the command prompt. Also make sure both your PC and the mobile device are connected to the same WiFi network.
+5. In the local host address and in the network configuration xml file, put in the local address of your PC, which you can find through the command prompt (ipconfig). Also make sure both your PC and the mobile device are connected to the same WiFi network.
 6. In the api_server.py, put the the location address of the .parquet file on your local machine.
 7. Once you do that, press "Run" on Android Studio and the .apk application will download to your mobile device. After that, you should run the api_server.py file in your PC enviiroment through the command prompt.
 8. Use the application normally.
